@@ -11,6 +11,45 @@ const inputTranscript = document.querySelector("#inputTranscript");
 const outputTranscript = document.querySelector("#outputTranscript");
 const statusMessage = document.querySelector("#statusMessage");
 const DEFAULT_INTERVIEWER_NAME = "インタビュー担当";
+const GLOBAL_ACKNOWLEDGMENTS = [/ありがとうございます/g, /ありがとうございました/g];
+const INTERVIEWER_SAFE_PREFIX_PATTERNS = [
+  /^(そうしましたら[、。]?\s*)+/,
+  /^(それでは[、。]?\s*)+/,
+  /^(続きまして[、。]?\s*)+/,
+  /^(続いて[、。]?\s*)+/,
+  /^(ではまず[、。]?\s*)+/,
+  /^(えっと[、。]?\s*)+/,
+  /^(えーと[、。]?\s*)+/,
+  /^(ええと[、。]?\s*)+/,
+  /^(あのー?[、。]?\s*)+/,
+  /^(そのー[、。]?\s*)+/,
+];
+const INTERVIEWER_CONDITIONAL_PREFIX_PATTERNS = [
+  /^(なるほど[、。]?\s*)+/,
+  /^(そうですね[、。]?\s*)+/,
+  /^(あ、?はい[、。]?\s*)+/,
+  /^(はい[、。]?\s*)+/,
+  /^(すみません[、。]?\s*)+/,
+  /^(失礼しました[、。]?\s*)+/,
+  /^(では[、。]?\s*)+/,
+  /^(じゃあ[、。]?\s*)+/,
+  /^(まあ[、。]?\s*)+/,
+  /^(ちょっと[、。]?\s*)+/,
+  /^(一旦[、。]?\s*)+/,
+  /^(ちなみに[、。]?\s*)+/,
+  /^(次に[、。]?\s*)+/,
+];
+const INTERVIEWER_SINGLE_SEGMENT_DROP_PATTERNS = [
+  /^ありがとうございます[。！!]?$/,
+  /^ありがとうございました[。！!]?$/,
+  /^なるほど[。！!]?$/,
+  /^そうですね[。！!]?$/,
+  /^はい[。！!]?$/,
+  /^あ[。！!]?はい[。！!]?$/,
+  /^すみません[。！!]?$/,
+  /^失礼しました[。！!]?$/,
+  /^19歳はい[。！!]?$/,
+];
 
 document.querySelector("#formatButton").addEventListener("click", handleFormat);
 document.querySelector("#loadSampleButton").addEventListener("click", loadSample);
@@ -49,10 +88,7 @@ function handleFormat() {
   const normalizedSegments = mergeConsecutiveSegments(
     segments.map((segment) => ({
       ...segment,
-      text: cleanSpeechText(segment.text, {
-        trimFiller: true,
-        keepThinkingFiller: true,
-      }),
+      text: cleanSpeechText(segment.text),
     })),
   );
 
@@ -129,74 +165,63 @@ function normalizeSpeakerName(name) {
   return name.replace(/\s+/g, " ").trim();
 }
 
-function cleanSpeechText(text, options) {
+function cleanSpeechText(text) {
   let cleaned = text.replace(/\s+/g, " ").trim();
 
-  cleaned = cleaned.replace(/ありがとうございます[。！!]?/g, " ");
-
-  if (!options.keepThinkingFiller) {
-    cleaned = cleaned.replace(/(^|[。、「\s])(うーん|えー|えーと|えっと|あのー|そのー|まあ)(?=[、。\s]|$)/g, "$1");
-  }
-
-  if (options.trimFiller) {
-    cleaned = cleaned
-      .replace(/(^|[。]\s*)(えーと|えっと|あのー|そのー|まあ、?|えー、?)(?=\s|[^ぁ-んァ-ヶ一-龠]|$)/g, "$1")
-      .replace(/([。]\s*)(えーと|えっと|あのー|そのー|まあ、?|えー、?)(?=\s|[^ぁ-んァ-ヶ一-龠]|$)/g, "$1");
-  }
-
-  cleaned = cleaned
-    .replace(/\s+([、。])/g, "$1")
-    .replace(/、{2,}/g, "、")
-    .replace(/。\s*、/g, "。")
-    .replace(/、\s*。/g, "。")
-    .replace(/。\s*。/g, "。")
-    .replace(/([。？])\s*([。？])/g, "$2")
-    .replace(/\s+([？])/g, "$1")
-    .replace(/^[、\s]+/g, "")
-    .replace(/^[。]+/g, "")
-    .replace(/^(と|で|あの|えっと)\s*/g, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
-
-  return cleaned;
+  return cleanupDanglingPunctuation(cleaned);
 }
 
 function normalizeInterviewerText(text) {
-  const acknowledgmentOnlyPatterns = [
-    /^ありがとうございます[。！!]?$/,
-    /^なるほど[。！!]?$/,
-    /^そうですね[。！!]?$/,
-    /^はい[。！!]?$/,
-    /^あ[。！!]?はい[。！!]?$/,
-    /^すみません[。！!]?$/,
-    /^19歳はい[。！!]?$/,
-  ];
+  let normalized = removeGlobalAcknowledgments(text);
+  normalized = cleanupDanglingPunctuation(normalized);
 
-  if (acknowledgmentOnlyPatterns.some((pattern) => pattern.test(text))) {
+  if (INTERVIEWER_SINGLE_SEGMENT_DROP_PATTERNS.some((pattern) => pattern.test(normalized))) {
     return "";
   }
 
-  let normalized = text
-    .replace(/^(なるほど[、。]?\s*)?(ありがとうございます[。！!]?[\s]*)+/g, "")
-    .replace(/^(ありがとうございますと[\s]*)+/g, "")
-    .replace(/^そうしましたら、?\s*/g, "")
-    .replace(/^とそうしましたら、?\s*/g, "")
-    .replace(/^続きまして、?\s*/g, "")
-    .replace(/^えっと、?そうしましたら\s*/g, "")
-    .replace(/^えっと、?続きまして\s*/g, "")
-    .trim();
-
+  normalized = stripInterviewerPrefixes(normalized);
   normalized = normalized
-    .replace(/^(と|で)\s+/g, "")
-    .replace(/^と(?=[^ぁ-んァ-ヶー])/g, "")
-    .replace(/^の(?=[^ぁ-んァ-ヶー])/g, "")
+    .replace(/^とそうしましたら[、。]?\s*/g, "")
+    .replace(/^えっと[、。]?\s*そうしましたら[、。]?\s*/g, "")
+    .replace(/^えっと[、。]?\s*続きまして[、。]?\s*/g, "")
+    .replace(/^ありがとうございますと/g, "")
+    .replace(/^と(?=現在)/g, "")
+    .replace(/^の(?=役職としては)/g, "")
     .replace(/^の役職としては/g, "役職としては")
-    .replace(/^と現在/g, "現在")
+    .replace(/^(と|で)\s+/g, "")
     .trim();
 
+  normalized = cleanupDanglingPunctuation(normalized);
   normalized = normalizeInterviewerQuestionEnding(normalized);
+  normalized = cleanupDanglingPunctuation(normalized);
 
   return normalized;
+}
+
+function removeGlobalAcknowledgments(text) {
+  return GLOBAL_ACKNOWLEDGMENTS.reduce(
+    (current, pattern) => current.replace(pattern, " "),
+    text,
+  );
+}
+
+function stripInterviewerPrefixes(text) {
+  let normalized = text;
+  let previous = null;
+
+  while (normalized !== previous) {
+    previous = normalized;
+
+    for (const pattern of INTERVIEWER_SAFE_PREFIX_PATTERNS) {
+      normalized = normalized.replace(pattern, "");
+    }
+
+    for (const pattern of INTERVIEWER_CONDITIONAL_PREFIX_PATTERNS) {
+      normalized = normalized.replace(pattern, "");
+    }
+  }
+
+  return normalized.trim();
 }
 
 function normalizeInterviewerQuestionEnding(text) {
@@ -219,6 +244,28 @@ function normalizeInterviewerQuestionEnding(text) {
   }
 
   return text;
+}
+
+function cleanupDanglingPunctuation(text) {
+  return text
+    .replace(/\s+([、。？！])/g, "$1")
+    .replace(/([、。？！])\s+([、。？！])/g, "$2")
+    .replace(/、{2,}/g, "、")
+    .replace(/。{2,}/g, "。")
+    .replace(/？{2,}/g, "？")
+    .replace(/！{2,}/g, "！")
+    .replace(/。\s*、/g, "。")
+    .replace(/、\s*。/g, "。")
+    .replace(/。\s*。/g, "。")
+    .replace(/？\s*？/g, "？")
+    .replace(/！\s*！/g, "！")
+    .replace(/^[、。？！\s]+/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function cleanupBulletQuestion(text) {
+  return text.replace(/^[、。？！\s]+/g, "").trim();
 }
 
 function mergeConsecutiveSegments(segments) {
@@ -247,7 +294,7 @@ function renderInterview(segments, interviewerName) {
     const isInterviewer = segment.speaker === interviewerName;
 
     if (isInterviewer) {
-      const questionText = normalizeInterviewerText(segment.text);
+      const questionText = cleanupBulletQuestion(normalizeInterviewerText(segment.text));
 
       if (!questionText) {
         continue;

@@ -1,16 +1,16 @@
-const SAMPLE_TRANSCRIPT = `山田: 今日はよろしくお願いします。
+const SAMPLE_TRANSCRIPT = `インタビュー担当: 今日はよろしくお願いします。
 佐藤: よろしくお願いします。
-山田: まず、今回のプロジェクトの概要を教えてください。
+インタビュー担当: まず、今回のプロジェクトの概要を教えてください。
 佐藤: えーと、社内のインタビュー記事をもっと早く整えるために、文字起こしを見やすい形に変える仕組みを考えています。
-山田: その背景にはどんな課題がありましたか。
+インタビュー担当: その背景にはどんな課題がありましたか。
 佐藤: うーん、毎回手作業で整えていて時間がかかっていたのと、担当者ごとに書式が少しずつ違っていました。
-山田: なるほど。今後はどう改善したいですか。
+インタビュー担当: なるほど。今後はどう改善したいですか。
 佐藤: 事実を説明しているところの余分なフィラーは減らしつつ、迷って考えているニュアンスは残したいです。`;
 
-const interviewerNameInput = document.querySelector("#interviewerName");
 const inputTranscript = document.querySelector("#inputTranscript");
 const outputTranscript = document.querySelector("#outputTranscript");
 const statusMessage = document.querySelector("#statusMessage");
+const DEFAULT_INTERVIEWER_NAME = "インタビュー担当";
 
 document.querySelector("#formatButton").addEventListener("click", handleFormat);
 document.querySelector("#loadSampleButton").addEventListener("click", loadSample);
@@ -19,13 +19,11 @@ document.querySelector("#copyButton").addEventListener("click", copyOutput);
 document.querySelector("#downloadButton").addEventListener("click", downloadOutput);
 
 function loadSample() {
-  interviewerNameInput.value = "山田";
   inputTranscript.value = SAMPLE_TRANSCRIPT;
   handleFormat();
 }
 
 function clearAll() {
-  interviewerNameInput.value = "";
   inputTranscript.value = "";
   outputTranscript.value = "";
   setStatus("");
@@ -33,7 +31,6 @@ function clearAll() {
 
 function handleFormat() {
   const rawText = inputTranscript.value.trim();
-  const interviewerName = interviewerNameInput.value.trim();
 
   if (!rawText) {
     outputTranscript.value = "";
@@ -49,7 +46,6 @@ function handleFormat() {
     return;
   }
 
-  const resolvedInterviewer = interviewerName || segments[0].speaker;
   const normalizedSegments = mergeConsecutiveSegments(
     segments.map((segment) => ({
       ...segment,
@@ -60,8 +56,8 @@ function handleFormat() {
     })),
   );
 
-  outputTranscript.value = renderInterview(normalizedSegments, resolvedInterviewer);
-  setStatus(`整形しました。インタビュアーは「${resolvedInterviewer}」として扱っています。`);
+  outputTranscript.value = renderInterview(normalizedSegments, DEFAULT_INTERVIEWER_NAME);
+  setStatus(`整形しました。インタビュアーは「${DEFAULT_INTERVIEWER_NAME}」として扱っています。`);
 }
 
 function parseTranscript(rawText) {
@@ -136,6 +132,8 @@ function normalizeSpeakerName(name) {
 function cleanSpeechText(text, options) {
   let cleaned = text.replace(/\s+/g, " ").trim();
 
+  cleaned = cleaned.replace(/ありがとうございます[。！!]?/g, " ");
+
   if (!options.keepThinkingFiller) {
     cleaned = cleaned.replace(/(^|[。、「\s])(うーん|えー|えーと|えっと|あのー|そのー|まあ)(?=[、。\s]|$)/g, "$1");
   }
@@ -155,6 +153,7 @@ function cleanSpeechText(text, options) {
     .replace(/([。？])\s*([。？])/g, "$2")
     .replace(/\s+([？])/g, "$1")
     .replace(/^[、\s]+/g, "")
+    .replace(/^[。]+/g, "")
     .replace(/^(と|で|あの|えっと)\s*/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();

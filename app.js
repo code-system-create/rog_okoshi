@@ -172,28 +172,46 @@ function cleanSpeechText(text) {
 }
 
 function normalizeInterviewerText(text) {
-  let normalized = removeGlobalAcknowledgments(text);
-  normalized = cleanupDanglingPunctuation(normalized);
+  let normalized = normalizeInterviewerLeadingFillers(text);
 
-  if (INTERVIEWER_SINGLE_SEGMENT_DROP_PATTERNS.some((pattern) => pattern.test(normalized))) {
+  if (!normalized) {
     return "";
   }
-
-  normalized = stripInterviewerPrefixes(normalized);
-  normalized = normalized
-    .replace(/^とそうしましたら[、。]?\s*/g, "")
-    .replace(/^えっと[、。]?\s*そうしましたら[、。]?\s*/g, "")
-    .replace(/^えっと[、。]?\s*続きまして[、。]?\s*/g, "")
-    .replace(/^ありがとうございますと/g, "")
-    .replace(/^と(?=現在)/g, "")
-    .replace(/^の(?=役職としては)/g, "")
-    .replace(/^の役職としては/g, "役職としては")
-    .replace(/^(と|で)\s+/g, "")
-    .trim();
 
   normalized = cleanupDanglingPunctuation(normalized);
   normalized = normalizeInterviewerQuestionEnding(normalized);
   normalized = cleanupDanglingPunctuation(normalized);
+
+  return normalized;
+}
+
+function normalizeInterviewerLeadingFillers(text) {
+  let normalized = text;
+  let previous = null;
+
+  while (normalized !== previous) {
+    previous = normalized;
+    normalized = removeGlobalAcknowledgments(normalized);
+    normalized = cleanupDanglingPunctuation(normalized);
+
+    if (INTERVIEWER_SINGLE_SEGMENT_DROP_PATTERNS.some((pattern) => pattern.test(normalized))) {
+      return "";
+    }
+
+    normalized = stripInterviewerPrefixes(normalized);
+    normalized = normalized
+      .replace(/^とそうしましたら[、。]?\s*/g, "")
+      .replace(/^えっと[、。]?\s*そうしましたら[、。]?\s*/g, "")
+      .replace(/^えっと[、。]?\s*続きまして[、。]?\s*/g, "")
+      .replace(/^ありがとうございますと/g, "")
+      .replace(/^と(?=現在)/g, "")
+      .replace(/^の(?=役職としては)/g, "")
+      .replace(/^の役職としては/g, "役職としては")
+      .replace(/^(と|で)\s+/g, "")
+      .trim();
+
+    normalized = cleanupDanglingPunctuation(normalized);
+  }
 
   return normalized;
 }

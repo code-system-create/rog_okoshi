@@ -268,6 +268,10 @@ function cleanupBulletQuestion(text) {
   return text.replace(/^[、。？！\s]+/g, "").trim();
 }
 
+function formatQuestionBullet(text) {
+  return `・${text}`.replace(/^・[、。？！\s]+/g, "・").trim();
+}
+
 function mergeConsecutiveSegments(segments) {
   if (segments.length === 0) {
     return [];
@@ -305,7 +309,7 @@ function renderInterview(segments, interviewerName) {
       }
 
       currentQuestion = {
-        question: `・${questionText}`,
+        question: formatQuestionBullet(questionText),
         answers: [],
       };
       continue;

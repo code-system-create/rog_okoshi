@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>インタビュー整形ツール</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <p class="eyebrow">Interview Formatter</p>
+        <h1>Zoom文字起こしを、読みやすいインタビュー形式に整える</h1>
+        <p class="lead">
+          話者つきの文字起こしを貼り付けると、インタビュアーの発言に「・」をつけた体裁へ自動整形します。
+          最初の版では「→」判定は行わず、質問はすべて「・」で出力します。
+        </p>
+      </section>
+
+      <section class="workspace">
+        <div class="panel controls">
+          <div class="panel-header">
+            <h2>入力設定</h2>
+            <p>Zoomの文字起こしや、話者名つきテキストをそのまま貼り付けてください。</p>
+          </div>
+
+          <label class="field">
+            <span>インタビュアー名</span>
+            <input
+              id="interviewerName"
+              type="text"
+              placeholder="例: 山田 / Interviewer / 自分の表示名"
+            />
+          </label>
+
+          <label class="field">
+            <span>文字起こしテキスト</span>
+            <textarea
+              id="inputTranscript"
+              placeholder="例:
+山田: 今日はよろしくお願いします。
+佐藤: こちらこそよろしくお願いします。
+山田: 今回の取り組みについて、まず概要を教えてください。
+佐藤: はい、今回ですね..."
+            ></textarea>
+          </label>
+
+          <div class="options">
+            <label class="checkbox">
+              <input id="trimFiller" type="checkbox" checked />
+              <span>事実説明中の軽いフィラーを削る</span>
+            </label>
+            <label class="checkbox">
+              <input id="keepThinkingFiller" type="checkbox" checked />
+              <span>迷い・思考のフィラーは残す</span>
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="formatButton" class="primary" type="button">整形する</button>
+            <button id="loadSampleButton" class="secondary" type="button">サンプルを入れる</button>
+            <button id="clearButton" class="ghost" type="button">クリア</button>
+          </div>
+
+          <div class="hint-card">
+            <p class="hint-title">想定している入力形式</p>
+            <ul>
+              <li><code>山田: 発言</code></li>
+              <li><code>山田：発言</code></li>
+              <li><code>山田 00:12 発言</code></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="panel output">
+          <div class="panel-header">
+            <h2>整形結果</h2>
+            <p>そのままコピーして共有できます。</p>
+          </div>
+
+          <textarea id="outputTranscript" readonly placeholder="ここに整形結果が表示されます。"></textarea>
+
+          <div class="actions">
+            <button id="copyButton" class="secondary" type="button">コピー</button>
+            <button id="downloadButton" class="secondary" type="button">txtで保存</button>
+          </div>
+
+          <div id="statusMessage" class="status" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

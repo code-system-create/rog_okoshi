@@ -10,8 +10,6 @@ const SAMPLE_TRANSCRIPT = `山田: 今日はよろしくお願いします。
 const interviewerNameInput = document.querySelector("#interviewerName");
 const inputTranscript = document.querySelector("#inputTranscript");
 const outputTranscript = document.querySelector("#outputTranscript");
-const trimFillerCheckbox = document.querySelector("#trimFiller");
-const keepThinkingFillerCheckbox = document.querySelector("#keepThinkingFiller");
 const statusMessage = document.querySelector("#statusMessage");
 
 document.querySelector("#formatButton").addEventListener("click", handleFormat);
@@ -56,8 +54,8 @@ function handleFormat() {
     segments.map((segment) => ({
       ...segment,
       text: cleanSpeechText(segment.text, {
-        trimFiller: trimFillerCheckbox.checked,
-        keepThinkingFiller: keepThinkingFillerCheckbox.checked,
+        trimFiller: true,
+        keepThinkingFiller: true,
       }),
     })),
   );
@@ -180,8 +178,8 @@ function normalizeInterviewerText(text) {
   }
 
   let normalized = text
-    .replace(/^(なるほど[、。]?\s*)?ありがとうございます[。！!]?\s*/g, "")
-    .replace(/^ありがとうございますと\s*/g, "")
+    .replace(/^(なるほど[、。]?\s*)?(ありがとうございます[。！!]?[\s]*)+/g, "")
+    .replace(/^(ありがとうございますと[\s]*)+/g, "")
     .replace(/^そうしましたら、?\s*/g, "")
     .replace(/^とそうしましたら、?\s*/g, "")
     .replace(/^続きまして、?\s*/g, "")
@@ -197,7 +195,31 @@ function normalizeInterviewerText(text) {
     .replace(/^と現在/g, "現在")
     .trim();
 
+  normalized = normalizeInterviewerQuestionEnding(normalized);
+
   return normalized;
+}
+
+function normalizeInterviewerQuestionEnding(text) {
+  if (!text) {
+    return "";
+  }
+
+  const normalizedBase = text.replace(/[。？！!?]+$/g, "").trim();
+  const questionLikeEnding =
+    /(でしょうか|ますか|ですか|ないですか|ありますか|ございますか|いかがですか|教えていただけますか|お伺いできますか|お聞かせください|教えてください|どうでしょうか|大丈夫|どのようなお役職|どういったお役職|何歳|ご年齢)$/;
+  const questionLikeCue =
+    /(でしょうか|ますか|ですか|ありますか|ございますか|教えていただけますか|お伺いできますか|いかがですか|どのよう|どういった|何か|いつ頃|どこまで|大丈夫)/;
+
+  if (/[？?]$/.test(text)) {
+    return text.replace(/[？?]+$/g, "？");
+  }
+
+  if (questionLikeEnding.test(normalizedBase) || questionLikeCue.test(normalizedBase)) {
+    return normalizedBase + "？";
+  }
+
+  return text;
 }
 
 function mergeConsecutiveSegments(segments) {

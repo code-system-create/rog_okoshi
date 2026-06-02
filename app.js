@@ -19,8 +19,10 @@ const INTERVIEWER_SAFE_PREFIX_PATTERNS = [
   /^(続いて[、。]?\s*)+/,
   /^(ではまず[、。]?\s*)+/,
   /^(えっと[、。]?\s*)+/,
+  /^(えーっと[、。]?\s*)+/,
   /^(えーと[、。]?\s*)+/,
   /^(ええと[、。]?\s*)+/,
+  /^(えと[、。]?\s*)+/,
   /^(あのー?[、。]?\s*)+/,
   /^(そのー[、。]?\s*)+/,
 ];
@@ -49,6 +51,10 @@ const INTERVIEWER_SINGLE_SEGMENT_DROP_PATTERNS = [
   /^すみません[。！!]?$/,
   /^失礼しました[。！!]?$/,
   /^19歳はい[。！!]?$/,
+];
+const INTERVIEWER_INLINE_FILLER_PATTERNS = [
+  /([、。？！]\s*)(えっと|えーっと|えーと|ええと|えと|あの|あのー|そのー)([、。？！]\s*)/g,
+  /([、。？！]\s*)(なるほど|そうですね|はい|あ、?はい|すみません|失礼しました|では|じゃあ|まあ|ちなみに)([、。？！]\s*)/g,
 ];
 
 document.querySelector("#formatButton").addEventListener("click", handleFormat);
@@ -178,6 +184,7 @@ function normalizeInterviewerText(text) {
     return "";
   }
 
+  normalized = removeInterviewerInlineFillers(normalized);
   normalized = cleanupDanglingPunctuation(normalized);
   normalized = normalizeInterviewerQuestionEnding(normalized);
   normalized = cleanupDanglingPunctuation(normalized);
@@ -242,6 +249,47 @@ function stripInterviewerPrefixes(text) {
   return normalized.trim();
 }
 
+function removeInterviewerInlineFillers(text) {
+  let normalized = text;
+  let previous = null;
+
+  while (normalized !== previous) {
+    previous = normalized;
+
+    for (const pattern of INTERVIEWER_INLINE_FILLER_PATTERNS) {
+      normalized = normalized.replace(pattern, (_, left, __, right) =>
+        selectRemainingPunctuation(left, right),
+      );
+    }
+
+    normalized = cleanupDanglingPunctuation(normalized);
+  }
+
+  return normalized;
+}
+
+function selectRemainingPunctuation(left, right) {
+  const leftTrimmed = left.trim();
+  const rightTrimmed = right.trim();
+  const combined = `${leftTrimmed}${rightTrimmed}`;
+
+  if (/[。？！]/.test(combined)) {
+    if (/[。]/.test(combined)) {
+      return "。";
+    }
+
+    if (/[？]/.test(combined)) {
+      return "？";
+    }
+
+    if (/[！]/.test(combined)) {
+      return "！";
+    }
+  }
+
+  return "、";
+}
+
 function normalizeInterviewerQuestionEnding(text) {
   if (!text) {
     return "";
@@ -265,7 +313,7 @@ function normalizeInterviewerQuestionEnding(text) {
 }
 
 function cleanupDanglingPunctuation(text) {
-  return text
+  let normalized = text
     .replace(/\s+([、。？！])/g, "$1")
     .replace(/([、。？！])\s+([、。？！])/g, "$2")
     .replace(/、{2,}/g, "、")
@@ -280,6 +328,20 @@ function cleanupDanglingPunctuation(text) {
     .replace(/^[、。？！\s]+/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
+
+  let previous = null;
+
+  while (normalized !== previous) {
+    previous = normalized;
+    normalized = normalized
+      .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+([ぁ-んァ-ヶ一-龠々ー])/g, "$1$2")
+      .replace(/([ぁ-んァ-ヶ一-龠々ー])\s+([、。？！])/g, "$1$2")
+      .replace(/([、。？！])\s+([ぁ-んァ-ヶ一-龠々ー])/g, "$1$2")
+      .replace(/\(\s+/g, "(")
+      .replace(/\s+\)/g, ")");
+  }
+
+  return normalized;
 }
 
 function cleanupBulletQuestion(text) {

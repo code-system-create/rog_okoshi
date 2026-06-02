@@ -93,7 +93,7 @@ function handleFormat() {
   );
 
   outputTranscript.value = renderInterview(normalizedSegments, DEFAULT_INTERVIEWER_NAME);
-  setStatus(`整形しました。インタビュアーは「${DEFAULT_INTERVIEWER_NAME}」として扱っています。`);
+  setStatus(`成形しました。インタビュアーは「${DEFAULT_INTERVIEWER_NAME}」として扱っています。`);
 }
 
 function parseTranscript(rawText) {
@@ -354,13 +354,13 @@ function renderInterview(segments, interviewerName) {
 
 async function copyOutput() {
   if (!outputTranscript.value) {
-    setStatus("先に整形結果を作成してください。");
+    setStatus("先に成形結果を作成してください。");
     return;
   }
 
   try {
     await navigator.clipboard.writeText(outputTranscript.value);
-    setStatus("整形結果をコピーしました。");
+    setStatus("成形結果をコピーしました。");
   } catch (error) {
     setStatus("コピーに失敗しました。ブラウザの権限設定を確認してください。");
   }
@@ -368,7 +368,7 @@ async function copyOutput() {
 
 function downloadOutput() {
   if (!outputTranscript.value) {
-    setStatus("先に整形結果を作成してください。");
+    setStatus("先に成形結果を作成してください。");
     return;
   }
 

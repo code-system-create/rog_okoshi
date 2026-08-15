@@ -375,7 +375,7 @@ function renderInterview(segments, interviewerName) {
   let currentQuestion = null;
 
   for (const segment of segments) {
-    const isInterviewer = segment.speaker === interviewerName;
+    const isInterviewer = isInterviewerSpeaker(segment.speaker, interviewerName);
 
     if (isInterviewer) {
       const questionText = cleanupBulletQuestion(normalizeInterviewerText(segment.text));
@@ -412,6 +412,22 @@ function renderInterview(segments, interviewerName) {
   return blocks
     .map((block) => [block.question, ...block.answers].filter(Boolean).join("\n"))
     .join("\n\n");
+}
+
+function isInterviewerSpeaker(speaker, interviewerName) {
+  if (speaker === interviewerName) {
+    return true;
+  }
+
+  const normalizedSpeaker = normalizeSpeakerName(speaker);
+  const normalizedInterviewer = normalizeSpeakerName(interviewerName);
+
+  return (
+    normalizedSpeaker.startsWith(`${normalizedInterviewer} `) ||
+    normalizedSpeaker.endsWith(` ${normalizedInterviewer}`) ||
+    normalizedSpeaker.includes(`${normalizedInterviewer} `) ||
+    normalizedSpeaker.includes(` ${normalizedInterviewer}`)
+  );
 }
 
 async function copyOutput() {

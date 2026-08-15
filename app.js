@@ -5,7 +5,7 @@ const SAMPLE_TRANSCRIPT = `インタビュー担当: 今日はよろしくお願
 インタビュー担当: その背景にはどんな課題がありましたか。
 佐藤: うーん、毎回手作業で整えていて時間がかかっていたのと、担当者ごとに書式が少しずつ違っていました。
 インタビュー担当: なるほど。今後はどう改善したいですか。
-佐藤: 事実を説明しているところの余分なフィラーは減らしつつ、迷って考えているニュアンスは残したいです。`;
+佐藤: 事実を説明しているところの余分なフィラーは減らしつつ、迷って考えていたり、ニュアンスは残したいです。`;
 
 const inputTranscript = document.querySelector("#inputTranscript");
 const outputTranscript = document.querySelector("#outputTranscript");

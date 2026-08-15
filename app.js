@@ -422,12 +422,7 @@ function isInterviewerSpeaker(speaker, interviewerName) {
   const normalizedSpeaker = normalizeSpeakerName(speaker);
   const normalizedInterviewer = normalizeSpeakerName(interviewerName);
 
-  return (
-    normalizedSpeaker.startsWith(`${normalizedInterviewer} `) ||
-    normalizedSpeaker.endsWith(` ${normalizedInterviewer}`) ||
-    normalizedSpeaker.includes(`${normalizedInterviewer} `) ||
-    normalizedSpeaker.includes(` ${normalizedInterviewer}`)
-  );
+  return normalizedSpeaker.includes(normalizedInterviewer);
 }
 
 async function copyOutput() {
